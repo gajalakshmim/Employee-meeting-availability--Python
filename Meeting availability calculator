@@ -1,1 +1,110 @@
+#generate 30min time batches between time1 and time2
+def generateTimebatch(time1, time2):
+    thisdict={ "0":"00", "1":"01","2":"02","3":"03","4":"04","5":"05",
+	   "6":"06","7":"07","8":"08","9":"09"}
+    thisdict1={"0":"00","5":"30"}
+    resultTime=[]
+    time1list=time1.split(":")
+    time2list=time2.split(":")
+    time1list=[int(d) for d in time1list]
+    time2list=[int(d) for d in time2list]
+    time1list[1]=.5 if time1list[1]==30 else time1list[1]
+    time2list[1]=.5 if time2list[1]==30 else time2list[1]
+    timecreate=[]
+    timecreate.append(float(time1list[0]+time1list[1]))
+    while timecreate[len(timecreate)-1]<(time2list[0]+time2list[1]):
+        timecreate.append(timecreate[len(timecreate)-1]+0.5)
+    for i in range(len(timecreate)-1):
+        z=str(timecreate[i]).split(".")
+        
+        y=str(timecreate[i+1]).split(".")
+        startvalue=thisdict[z[0]] if int(z[0])<10 else str(z[0])
+        endvalue=thisdict[y[0]] if int(y[0])<10 else str(y[0])
+        resultTime.append(startvalue+':'+thisdict1[z[1]]+"-"+endvalue+':'+thisdict1[y[1]])
+    return resultTime
+
+#To find meeting Availability time, subtract scheduled meeting times from the 24 hour time and
+#get available time in 30min time batches
+def timeavail(*busytime):
+    totalbusytime=[]
+    for i in busytime:
+        btime=i.split("-")
+        totalbusytime.extend(generateTimebatch(btime[0],btime[1]))
+    totaltime=generateTimebatch("00:00","24:00")
+    totalavail=totaltime.copy()
+    for i in totalbusytime:
+        if i in totalavail:
+            totalavail.remove(i)
+    return totalavail
+
+#'timebatches' calculates available time batches(ie.30min to 24 hour) for each employee
+#and outputs the number of employees available in particular time batch.
+
+def timebatches(empSchedule):
+    totaltime=generateTimebatch("00:00","24:00")
+    timecount=[]
+    for k in range(len(totaltime)):
+        
+        #print(empavail)
+        for j in range(len(totaltime)-k):
+            n=totaltime[j][:6]+totaltime[j+k][-5:]
+            counter=0
+            
+            flag=[]
+            for i in empSchedule:
+                empavail=timeavail(*i)
+                comp=j
+                flag.clear()
+                
+                while comp<=j+k:
+                    flag.append(True) if totaltime[comp] in empavail else flag.append(False)
+                    comp+=1
+                        
+                if all(flag):
+                    counter+=1
+            timecount.append([n,counter,0.5+k*0.5,j])   
+                   
+    return timecount
+
+
+#filter all the subset time batches and get only the maximum time batches
+
+def filteredlist(list):
+    removelist=[]
+    for i in list:
+        atime=i[0].split("-")
+        i.append(generateTimebatch(atime[0],atime[1]))
+    
+    for i in range(len(list)):
+        for j in range(i + 1, len(list)):
+            if set(list[j][4]).issubset(set(list[i][4])):
+                removelist.append(j)
+            
+    filteredlist=[list[x]  for x in range(len(list)) if x not in removelist]
+    
+    return filteredlist
+
+
+empSchedule=[["00:00-03:30","05:30-07:30"],["00:00-05:00"],["09:00-11:00","14:00-15:30"],["17:30-23:30"]]
+
+#for i in empschedule:
+#     empavail=timeavail(*i)
+#     print(empavail)
+count=timebatches(empSchedule)
+
+
+        
+# sort the available timebatches for the employees with max employeess and maximum time batch in top.
+finalsorted=sorted(count,reverse=True,key=lambda x: (x[1], x[2]))
+
+#printing first 20- max time batches with max number of employees.
+#for i in finalsorted[:20]:
+#    print(i)
+
+#print a filtered list, showing the max available employees with maximum available time batches
+filterlist=sorted(filteredlist(finalsorted),reverse=True,key=lambda x: (x[1], x[2]))
+for i in filterlist[:20]:
+    print(i[:2])
+
+
 
